@@ -5,7 +5,7 @@
 ---
 
 ## 👨‍💻 Developer
-**Sahil Raj** *Aspiring Software Engineer | B.Tech in AI & Data Science*
+**Shah Hamza** *Aspiring Software Engineer | B.Tech *
 
 ---
 
