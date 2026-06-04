@@ -58,7 +58,7 @@ Start the Development Server:
 Bash
 npm run dev
 Launch the App:
-Navigate to http://localhost:5173 in your preferred web browser.
+Navigate to http://localhost:5173/ in your preferred web browser.
 
 📊 Architecture & Database
 To ensure high performance and zero server costs, this project utilizes a Master JSON Object architecture. By leveraging the browser's LocalStorage API, the application functions as an offline-first tool, allowing users to save and retrieve data without requiring an active internet connection or external cloud database.
@@ -66,4 +66,4 @@ To ensure high performance and zero server costs, this project utilizes a Master
 📝 License
 This project is licensed under the MIT License.
 
-EduPortal v1.0 | Engineered with ❤️ by Sahil Raj
+EduPortal v1.0 | Engineered with by Shah Hamza 
