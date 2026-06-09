@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   LayoutDashboard, UserCircle, BookOpen, Users, 
   CheckCircle, GraduationCap, Clock, Calendar, 
   Save, ChevronRight, LogOut, UserPlus, FileEdit,
   ShieldCheck, LogIn, ClipboardList, PlusCircle,
-  CreditCard, Receipt, AlertCircle
+  CreditCard, Receipt, AlertCircle, BarChart3, Loader2
 } from 'lucide-react';
+import { authAPI, studentsAPI, teachersAPI } from './services/api';
 
 const App = () => {
   const [user, setUser] = useState(null); 
@@ -14,6 +15,7 @@ const App = () => {
   const [role, setRole] = useState('student'); 
   const [db, setDb] = useState({ users: [], students: [], teachers: [] });
   const [showToast, setShowToast] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   // System setup for full screen
   useEffect(() => {
@@ -27,139 +29,125 @@ const App = () => {
     document.head.appendChild(style);
   }, []);
 
-  // Database Initialization with Rupee values and Full Week Schedule
-  useEffect(() => {
-    const savedData = localStorage.getItem('eduportal_master_db');
-    if (savedData) {
-      setDb(JSON.parse(savedData));
-    } else {
-      const mockStudents = [
-        { id: "S101", name: "Rahul Kumar", marks: { Math: 85, Science: 78, CS: 92 }, attendance: 88, fees: { total: 125000, paid: 85000, balance: 40000 }, attendanceLog: [{ month: "JAN", value: 80 }, { month: "FEB", value: 85 }, { month: "MAR", value: 90 }, { month: "APR", value: 88 }] },
-        { id: "S102", name: "Priya Sharma", marks: { Math: 72, Science: 90, CS: 85 }, attendance: 92, fees: { total: 125000, paid: 125000, balance: 0 }, attendanceLog: [{ month: "JAN", value: 90 }, { month: "FEB", value: 92 }, { month: "MAR", value: 95 }, { month: "APR", value: 92 }] },
-        { id: "S103", name: "Amit Singh", marks: { Math: 65, Science: 70, CS: 80 }, attendance: 75, fees: { total: 125000, paid: 45000, balance: 80000 }, attendanceLog: [{ month: "JAN", value: 70 }, { month: "FEB", value: 75 }, { month: "MAR", value: 72 }, { month: "APR", value: 75 }] },
-        { id: "S104", name: "Sanya Roy", marks: { Math: 95, Science: 98, CS: 99 }, attendance: 98, fees: { total: 125000, paid: 125000, balance: 0 }, attendanceLog: [{ month: "JAN", value: 98 }, { month: "FEB", value: 98 }, { month: "MAR", value: 100 }, { month: "APR", value: 98 }] },
-        { id: "S105", name: "Vikram Aditya", marks: { Math: 80, Science: 82, CS: 88 }, attendance: 85, fees: { total: 125000, paid: 90000, balance: 35000 }, attendanceLog: [{ month: "JAN", value: 80 }, { month: "FEB", value: 82 }, { month: "MAR", value: 85 }, { month: "APR", value: 85 }] },
-        { id: "S106", name: "Anjali Verma", marks: { Math: 70, Science: 65, CS: 75 }, attendance: 80, fees: { total: 125000, paid: 125000, balance: 0 }, attendanceLog: [{ month: "JAN", value: 75 }, { month: "FEB", value: 78 }, { month: "MAR", value: 80 }, { month: "APR", value: 80 }] },
-        { id: "S107", name: "Arjun Mehra", marks: { Math: 88, Science: 85, CS: 90 }, attendance: 90, fees: { total: 125000, paid: 110000, balance: 15000 }, attendanceLog: [{ month: "JAN", value: 85 }, { month: "FEB", value: 88 }, { month: "MAR", value: 92 }, { month: "APR", value: 90 }] },
-        { id: "S108", name: "Ishani Gupta", marks: { Math: 78, Science: 80, CS: 82 }, attendance: 82, fees: { total: 125000, paid: 60000, balance: 65000 }, attendanceLog: [{ month: "JAN", value: 78 }, { month: "FEB", value: 80 }, { month: "MAR", value: 82 }, { month: "APR", value: 82 }] },
-        { id: "S109", name: "Rohan Das", marks: { Math: 92, Science: 88, CS: 95 }, attendance: 95, fees: { total: 125000, paid: 125000, balance: 0 }, attendanceLog: [{ month: "JAN", value: 92 }, { month: "FEB", value: 95 }, { month: "MAR", value: 98 }, { month: "APR", value: 95 }] },
-        { id: "S110", name: "Kavya Iyer", marks: { Math: 84, Science: 86, CS: 88 }, attendance: 86, fees: { total: 125000, paid: 95000, balance: 30000 }, attendanceLog: [{ month: "JAN", value: 84 }, { month: "FEB", value: 85 }, { month: "MAR", value: 88 }, { month: "APR", value: 86 }] }
-      ];
-
-      const initialDb = {
-        users: [
-          { id: "admin", password: "123", name: "Prof. Rajesh Sharma", role: "teacher" },
-          { id: "S101", password: "123", name: "Rahul Kumar", role: "student" }
-        ],
-        students: mockStudents,
-        teachers: [
-          { 
-            id: "admin", 
-            name: "Prof. Rajesh Sharma", 
-            department: "AI & Data Science",
-            schedule: [
-              { day: "Monday", time: "10:00 AM", class: "B.Tech CS-4A", room: "302" },
-              { day: "Tuesday", time: "11:30 AM", class: "B.Tech AI-1A", room: "101" },
-              { day: "Wednesday", time: "02:00 PM", class: "B.Tech AI-2B", room: "Lab 5" },
-              { day: "Thursday", time: "10:00 AM", class: "B.Tech CS-4A", room: "302" },
-              { day: "Friday", time: "11:00 AM", class: "B.Tech CS-3C", room: "401" },
-              { day: "Saturday", time: "09:30 AM", class: "Data Science Seminar", room: "Audi-1" }
-            ]
-          }
-        ]
-      };
-      localStorage.setItem('eduportal_master_db', JSON.stringify(initialDb));
-      setDb(initialDb);
-    }
-  }, []);
-
-  const saveToDb = (newDb) => {
-    setDb(newDb);
-    localStorage.setItem('eduportal_master_db', JSON.stringify(newDb));
-  };
-
-  const notify = (msg) => {
+  const notify = useCallback((msg) => {
     setShowToast(msg);
     setTimeout(() => setShowToast(""), 3000);
+  }, []);
+
+  const loadPortalData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [students, teachers] = await Promise.all([
+        studentsAPI.getAll(),
+        teachersAPI.getAll(),
+      ]);
+
+      setDb({ users: [], students, teachers });
+    } catch (error) {
+      notify(`Database error: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [notify]);
+
+  useEffect(() => {
+    loadPortalData();
+  }, [loadPortalData]);
+
+  const replaceStudent = (updatedStudent) => {
+    setDb((current) => ({
+      ...current,
+      students: current.students.map((student) =>
+        student.id === updatedStudent.id ? updatedStudent : student
+      ),
+    }));
   };
 
-  const handleAuth = (e, type) => {
+  const handleAuth = async (e, type) => {
     e.preventDefault();
     const data = new FormData(e.target);
     const userId = data.get('userId');
     const password = data.get('password');
     const name = data.get('name');
 
-    if (type === 'signup') {
-      if (db.users.find(u => u.id === userId)) return notify("User ID already exists!");
-      
-      const newUser = { id: userId, password, name, role };
-      const updatedUsers = [...db.users, newUser];
-      const newDb = { ...db, users: updatedUsers };
-      
-      if (role === 'teacher') {
-        newDb.teachers.push({ 
-          id: userId, 
-          name, 
-          department: "AI & Data Science",
-          schedule: [{ day: "Monday", time: "09:00 AM", class: "Intro to Computing", room: "Lab 1" }]
-        });
+    setIsLoading(true);
+    try {
+      if (type === 'signup') {
+        await authAPI.signup(userId, password, name, role);
+        await loadPortalData();
+        notify("Registration Successful!");
+        setView('login');
       } else {
-        newDb.students.push({ 
-          id: userId, 
-          name, 
-          marks: { Math: 0, Science: 0, CS: 0 }, 
-          attendance: 0,
-          fees: { total: 125000, paid: 0, balance: 125000 },
-          attendanceLog: [{ month: "JAN", value: 0 }, { month: "FEB", value: 0 }, { month: "MAR", value: 0 }, { month: "APR", value: 0 }]
-        });
-      }
+        const result = await authAPI.login(userId, password);
+        if (result.user.role !== role) {
+          notify(`This account is registered as ${result.user.role}`);
+          return;
+        }
 
-      saveToDb(newDb);
-      notify("Registration Successful!");
-      setView('login');
-    } else {
-      const foundUser = db.users.find(u => u.id === userId && u.password === password && u.role === role);
-      if (foundUser) {
-        setUser(foundUser);
+        setUser(result.user);
         setView('dashboard');
-        notify(`Welcome back, ${foundUser.name}`);
-      } else {
-        notify("Invalid Credentials!");
+        notify(`Welcome back, ${result.user.name}`);
       }
+    } catch (error) {
+      notify(error.message || "Invalid Credentials!");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleAddStudent = (e) => {
+  const handleAddStudent = async (e) => {
     e.preventDefault();
     const data = new FormData(e.target);
     const sId = data.get('sId');
     const sName = data.get('sName');
+    const attendance = parseInt(data.get('sAtt')) || 0;
 
-    if (db.students.find(s => s.id === sId)) return notify("Student ID already exists!");
-
-    const newStudent = { 
-      id: sId, 
-      name: sName, 
-      marks: { Math: 0, Science: 0, CS: 0 }, 
-      attendance: parseInt(data.get('sAtt')) || 0,
-      fees: { total: 125000, paid: 0, balance: 125000 },
-      attendanceLog: [{ month: "JAN", value: 60 }, { month: "FEB", value: 70 }, { month: "MAR", value: 80 }, { month: "APR", value: 85 }]
-    };
-
-    saveToDb({ ...db, students: [...db.students, newStudent] });
-    notify("Student added successfully!");
-    e.target.reset();
+    try {
+      const newStudent = await studentsAPI.create({ id: sId, name: sName, attendance });
+      setDb((current) => ({ ...current, students: [...current.students, newStudent] }));
+      notify("Student added successfully!");
+      e.target.reset();
+    } catch (error) {
+      notify(error.message);
+    }
   };
 
-  const updateMarks = (sId, subject, val) => {
-    const updatedStudents = db.students.map(s => {
-      if (s.id === sId) {
-        return { ...s, marks: { ...s.marks, [subject]: parseInt(val) || 0 } };
-      }
-      return s;
-    });
-    saveToDb({ ...db, students: updatedStudents });
+  const updateMarks = async (sId, subject, val) => {
+    const student = db.students.find((item) => item.id === sId);
+    if (!student) return;
+
+    const marks = { ...student.marks, [subject]: parseInt(val) || 0 };
+    replaceStudent({ ...student, marks });
+
+    try {
+      const updated = await studentsAPI.updateMarks(sId, marks);
+      replaceStudent(updated);
+    } catch (error) {
+      notify(error.message);
+      replaceStudent(student);
+    }
+  };
+
+  const updateAttendanceLog = async (sId, month, value) => {
+    const student = db.students.find((item) => item.id === sId);
+    if (!student) return;
+
+    const attendanceLog = student.attendanceLog.map((log) =>
+      log.month === month ? { ...log, value: parseInt(value) || 0 } : log
+    );
+    const average = attendanceLog.length
+      ? Math.round(attendanceLog.reduce((total, log) => total + Number(log.value), 0) / attendanceLog.length)
+      : 0;
+
+    replaceStudent({ ...student, attendanceLog, attendance: average });
+
+    try {
+      const updated = await studentsAPI.addAttendanceLog(sId, month, parseInt(value) || 0);
+      replaceStudent(updated);
+    } catch (error) {
+      notify(error.message);
+      replaceStudent(student);
+    }
   };
 
   if (view !== 'dashboard') {
@@ -224,10 +212,12 @@ const App = () => {
               <SidebarLink icon={ClipboardList} label="Class Schedule" active={activeTab === 'schedule'} onClick={() => setActiveTab('schedule')} />
               <SidebarLink icon={UserPlus} label="Add Student" active={activeTab === 'manage'} onClick={() => setActiveTab('manage')} />
               <SidebarLink icon={FileEdit} label="Upload Marks" active={activeTab === 'grading'} onClick={() => setActiveTab('grading')} />
+              <SidebarLink icon={BarChart3} label="Attendance" active={activeTab === 'attendance'} onClick={() => setActiveTab('attendance')} />
             </>
           ) : (
             <>
               <SidebarLink icon={BookOpen} label="My Progress" active={activeTab === 'academics'} onClick={() => setActiveTab('academics')} />
+              <SidebarLink icon={BarChart3} label="Attendance" active={activeTab === 'attendance'} onClick={() => setActiveTab('attendance')} />
               <SidebarLink icon={Receipt} label="Academic Fees" active={activeTab === 'fees'} onClick={() => setActiveTab('fees')} />
             </>
           )}
@@ -341,6 +331,88 @@ const App = () => {
                    </tbody>
                  </table>
                </div>
+            </div>
+          )}
+
+          {user.role === 'teacher' && activeTab === 'attendance' && (
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <StatCard label="Class Average" value={`${db.students.length ? Math.round(db.students.reduce((total, s) => total + Number(s.attendance || 0), 0) / db.students.length) : 0}%`} sub="Attendance" icon={BarChart3} color="text-blue-600" bgColor="bg-blue-50" />
+                <StatCard label="Shortage Risk" value={db.students.filter((s) => Number(s.attendance) < 75).length} sub="Below 75%" icon={AlertCircle} color="text-rose-600" bgColor="bg-rose-50" />
+                <StatCard label="Records" value={db.students.reduce((total, s) => total + (s.attendanceLog?.length || 0), 0)} sub="Monthly Entries" icon={ClipboardList} color="text-emerald-600" bgColor="bg-emerald-50" />
+              </div>
+              <div className="bg-white rounded-[40px] border border-slate-200 overflow-hidden shadow-sm">
+                <div className="p-8 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="font-black text-xl text-slate-800">Student Attendance Management</h3>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Monthly records are stored in SQLite</p>
+                  </div>
+                  {isLoading && <Loader2 className="animate-spin text-blue-600" />}
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-slate-50/50 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      <tr>
+                        <th className="px-8 py-6 min-w-56">Student</th>
+                        <th className="px-6 py-6 text-center">Average</th>
+                        <th className="px-6 py-6 text-center">Math</th>
+                        <th className="px-6 py-6 text-center">Science</th>
+                        <th className="px-6 py-6 text-center">CS</th>
+                        {(db.students[0]?.attendanceLog || []).map((log) => (
+                          <th key={log.month} className="px-4 py-6 text-center">{log.month}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {db.students.map((s) => (
+                        <tr key={s.id} className="hover:bg-blue-50/20 transition-colors">
+                          <td className="px-8 py-7">
+                            <p className="font-black text-slate-800 leading-tight">{s.name}</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">{s.id}</p>
+                          </td>
+                          <td className="px-6 py-7 text-center">
+                            <span className={`px-4 py-1.5 rounded-full text-xs font-black ${s.attendance < 75 ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>{s.attendance}%</span>
+                          </td>
+                          <td className="px-6 py-7 text-center font-black text-slate-500">{s.marks.Math}</td>
+                          <td className="px-6 py-7 text-center font-black text-slate-500">{s.marks.Science}</td>
+                          <td className="px-6 py-7 text-center font-black text-slate-500">{s.marks.CS}</td>
+                          {(s.attendanceLog || []).map((log) => (
+                            <td key={`${s.id}-${log.month}`} className="px-4 py-7 text-center">
+                              <input type="number" min="0" max="100" value={log.value} onChange={(e) => updateAttendanceLog(s.id, log.month, e.target.value)} className="w-16 px-3 py-2 rounded-xl bg-slate-100 border-none font-black text-center focus:ring-2 focus:ring-blue-500" />
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {user.role === 'student' && activeTab === 'attendance' && currentUserData && (
+            <div className="space-y-10">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <StatCard label="Current Attendance" value={`${currentUserData.attendance}%`} sub="Average" icon={BarChart3} color="text-blue-600" bgColor="bg-blue-50" />
+                <StatCard label="Required" value="75%" sub="Minimum Criteria" icon={ShieldCheck} color="text-emerald-600" bgColor="bg-emerald-50" />
+                <StatCard label="Status" value={currentUserData.attendance >= 75 ? "Clear" : "Risk"} sub="Eligibility" icon={AlertCircle} color={currentUserData.attendance >= 75 ? "text-indigo-600" : "text-rose-600"} bgColor={currentUserData.attendance >= 75 ? "bg-indigo-50" : "bg-rose-50"} />
+              </div>
+              <div className="bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm">
+                <h3 className="text-xl font-black mb-8 flex items-center gap-3 text-slate-800"><Calendar className="text-blue-600" /> Monthly Attendance History</h3>
+                <div className="flex items-end justify-between h-64 gap-6 px-2">
+                  {currentUserData.attendanceLog.map((log) => (
+                    <div key={log.month} className="flex-1 flex flex-col items-center gap-4 group min-w-14">
+                      <div className="w-full bg-slate-50 rounded-2xl relative h-full flex flex-col justify-end overflow-hidden border border-slate-100">
+                        <div className={`w-full rounded-t-xl transition-all duration-1000 ${log.value < 75 ? 'bg-rose-500' : 'bg-blue-500 group-hover:bg-blue-600'}`} style={{ height: `${log.value}%` }}></div>
+                      </div>
+                      <div className="text-center">
+                        <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">{log.month}</span>
+                        <span className="block text-xs font-black text-slate-700 mt-1">{log.value}%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
